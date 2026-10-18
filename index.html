@@ -3,187 +3,630 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>School Login Form</title>
+    <title>Multi-Book PDF & Word Flipbook Reader</title>
+    
+    <!-- PDF.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <!-- Mammoth.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.16/mammoth.browser.min.js"></script>
+    <!-- PageFlip CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/page-flip/dist/js/page-flip.browser.js"></script>
+
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 50%, #38bdf8 100%);
-            height: 100vh;
+            background-color: #525659;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            position: relative;
+            justify-content: space-between;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow: hidden;
         }
 
-        .container {
-            background: #ffffff;
+        .top-bar {
             width: 100%;
-            max-width: 400px;
-            padding: 30px;
-            border-radius: 24px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            z-index: 10;
-            margin: 20px;
+            background-color: #323639;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            z-index: 100;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
-        .school-header {
-            margin-bottom: 20px;
+        .book-selector-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .container h2 {
-            color: #1e3a8a;
-            font-size: 20px;
-            margin-bottom: 10px;
+        select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: none;
+            background-color: #4b5563;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            max-width: 250px;
+        }
+
+        .file-select-btn {
+            background-color: #2563eb;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
             font-weight: bold;
+            font-size: 13px;
+            transition: background 0.2s;
+            display: inline-block;
         }
 
-        .input-group {
-            margin-bottom: 15px;
+        .file-select-btn:hover {
+            background-color: #1d4ed8;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .auto-play-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #4b5563;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .auto-play-controls input {
+            width: 45px;
+            padding: 4px;
+            border-radius: 4px;
+            border: none;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .btn-start {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+
+        .btn-start:hover {
+            background-color: #059669;
+        }
+
+        .btn-start.active {
+            background-color: #ef4444;
+        }
+
+        .viewport-area {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 10px;
+            overflow: hidden;
             position: relative;
         }
 
-        .input-group input {
-            width: 100%;
-            padding: 14px 15px 14px 45px;
-            border: 1px solid #cbd5e1;
-            border-radius: 12px;
-            outline: none;
-            font-size: 15px;
-            background-color: #f8fafc;
-            transition: all 0.3s ease;
-        }
-
-        .input-group input:focus {
-            border-color: #2563eb;
-            background-color: #fff;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-        }
-
-        .input-group::before {
-            font-family: sans-serif;
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #64748b;
+        #loading {
+            color: #ffffff;
             font-size: 18px;
+            display: none;
+            position: absolute;
+            z-index: 50;
         }
 
-        .input-group.user::before {
-            content: "👤";
-        }
-
-        .input-group.pass::before {
-            content: "🔒";
-        }
-
-        .remember-forgot {
+        #bookWrapper {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-            font-size: 14px;
-            margin-bottom: 20px;
-            color: #64748b;
         }
 
-        .remember-forgot a {
-            color: #2563eb;
-            text-decoration: none;
+        .flipbook-container {
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+            transition: transform 0.3s ease;
         }
 
-        .remember-forgot a:hover {
-            text-decoration: underline;
+        .page {
+            background-color: #fcfcfc;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            overflow: hidden;
+            padding: 20px 25px; 
+            font-size: 13px;
+            line-height: 1.5;
+            color: #333;
+            box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.1);
         }
 
-        .btn-signin {
+        .page canvas {
             width: 100%;
-            padding: 14px;
-            background-color: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.3s ease;
+            height: 100%;
+            object-fit: contain;
         }
 
-        .btn-signin:hover {
-            background-color: #1d4ed8;
+        .word-page-content {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            text-align: left;
+        }
+
+        .bottom-toolbar {
+            width: 100%;
+            background-color: #323639;
+            height: 45px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            color: #d1d5db;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.3);
+            z-index: 100;
+        }
+
+        .btn-tool {
+            background: none;
+            border: none;
+            color: #d1d5db;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 10px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .btn-tool:hover {
+            background-color: #4b5563;
+            color: white;
+        }
+
+        .page-counter {
+            font-size: 13px;
+            color: #e5e7eb;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .divider {
+            width: 1px;
+            height: 18px;
+            background-color: #4b5563;
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="school-header">
-            <svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 21h18M3 10h18M5 6l7-3 7 3M4 10v11M20 10v11M8 14v3M12 14v3M16 14v3"/>
-            </svg>
-            <h2>ប្រព័ន្ធបែងចែកកាលវិភាគ</h2>
-            <h3 style="font-size: 14px; color: #64748b; margin-bottom: 10px;">Tel: 098981192 / 0973272123</h3>
-            <h2>School Login</h2>
+    <div class="top-bar">
+        <div class="book-selector-group">
+            <label for="bookSelect" style="font-size: 13px; font-weight: bold;">📚 សៀវភៅ៖</label>
+            <select id="bookSelect">
+                <option value="">-- ជ្រើសរើសឯកសារ --</option>
+            </select>
         </div>
 
-        <form id="loginForm">
-            <div class="input-group user">
-                <input type="text" id="username" placeholder="Full Name or Username" required>
-            </div>
-            <div class="input-group pass">
-                <input type="password" id="password" placeholder="Password" required>
-            </div>
+        <div class="book-selector-group">
+            <label for="viewMode" style="font-size: 13px; font-weight: bold;">📖 ទម្រង់៖</label>
+            <select id="viewMode">
+                <option value="2">បង្ហាញ ២ ទំព័រ</option>
+                <option value="1">បង្ហាញ ១ ទំព័រ</option>
+            </select>
+        </div>
 
-            <div class="remember-forgot">
-                <label><input type="checkbox"> Remember me</label>
-                <a href="#">Forgot password?</a>
-            </div>
+        <div class="auto-play-controls">
+            <label for="intervalTime" style="font-size: 12px;">វិនាទី:</label>
+            <input type="number" id="intervalTime" value="5" min="1" max="300">
+            <button id="btnAutoPlay" class="btn-start">▶ Start</button>
+        </div>
 
-            <button type="submit" class="btn-signin">Submit</button>
-        </form>
+        <div>
+            <label for="fileInput" class="file-select-btn">📁 បន្ថែមឯកសារ(PDF/Word)</label>
+            <input type="file" id="fileInput" accept=".pdf, .docx">
+        </div>
+    </div>
+
+    <div class="viewport-area">
+        <div id="loading">កំពុងដំណើរការអានឯកសារ... សូមរង់ចាំ!</div>
+        <div id="bookWrapper">
+            <div id="flipbook" class="flipbook-container"></div>
+        </div>
+    </div>
+
+    <div class="bottom-toolbar">
+        <button class="btn-tool" id="btnFirst" title="ទំព័រដំបូង">⏮</button>
+        <button class="btn-tool" id="btnPrev" title="ថយក្រោយ">◀</button>
+        
+        <span class="page-counter" id="pageDisplay">0 / 0</span>
+        
+        <button class="btn-tool" id="btnNext" title="ទៅមុខ">▶</button>
+        <button class="btn-tool" id="btnLast" title="ទំព័រចុងក្រោយ">⏭</button>
+
+        <div class="divider"></div>
+
+        <button class="btn-tool" id="btnZoomOut" title="បង្រួម">-</button>
+        <button class="btn-tool" id="btnZoomIn" title="ពង្រីក">+</button>
+
+        <div class="divider"></div>
+
+        <button class="btn-tool" id="btnFullscreen" title="អេក្រង់ពេញ">⛶</button>
     </div>
 
     <script>
-        // កំណត់បញ្ជីគណនី
-        const validUsers = [
-            { username: "admin1", password: "1234" },
-            { username: "teacher1", password: "1111" },
-            { username: "teacher2", password: "2222" }
-        ];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const inputUser = document.getElementById('username').value.trim();
-            const inputPass = document.getElementById('password').value.trim();
+        let pageFlip = null;
+        let totalPages = 0;
+        let currentZoom = 1;
+        let autoPlayInterval = null;
+        let isAutoPlaying = false;
+        
+        let allFilesData = {};
+        let currentBuffer = null;
+        let currentFileType = '';
 
-            const matchedUser = validUsers.find(u => u.username === inputUser && u.password === inputPass);
-
-            if (matchedUser) {
-                // ពិនិត្យមើលថាតើគណនីនេះកំពុងបើកប្រើប្រាស់លើ Tab/Browser ផ្សេងរួចហើយឬនៅ (តាមរយៈ sessionStorage)
-                const activeSession = sessionStorage.getItem("active_user_" + matchedUser.username);
+        // សំឡេងក្រដាសស្វិចៗដូចវីដេអូ (Smooth Paper Swish & Sweep Sound)
+        function playPageFlipSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 
-                if (activeSession) {
-                    alert("គណនីនេះកំពុងត្រូវបានប្រើប្រាស់ដោយអ្នកផ្សេងរួចហើយ! មិនអាចចូលប្រើបានទេ។ សូមទាក់ទងតាមលេខទូរស័ព្ទ 098981192 / 0973272123 ដើម្បីទទួលបានជំនួយ សូមអរគុណ។");
-                    return;
+                const duration = 0.35; // រយៈពេលលឺស្រទន់ស្របពេលទំព័រលោត
+                const bufferSize = audioCtx.sampleRate * duration;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI);
                 }
 
-                // កត់ត្រាចូល sessionStorage (វានឹងលុបចេញស្វ័យប្រវត្តិពេលបិទ Browser ឬ Tab)
-                sessionStorage.setItem("active_user_" + matchedUser.username, "true");
-                sessionStorage.setItem("isLoggedIn", "true");
-                sessionStorage.setItem("currentUser", matchedUser.username);
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
 
-                // បញ្ជូនទៅកាន់ទំព័រគោលដៅ
-                window.location.href = "app.html";
+                // ប្រើ Bandpass Filter រួមនឹង Frequency Sweep ដើម្បីឱ្យលឺសូរស្វិចៗរលាត់ក្រដាសស្រទន់ធម្មជាតិ
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(1000, audioCtx.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(3000, audioCtx.currentTime + duration * 0.5);
+                filter.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + duration);
+                filter.Q.value = 4.0;
+
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.setValueAtTime(0.01, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.1);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+                noise.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                noise.start();
+            } catch (e) {
+                console.log("Audio error:", e);
+            }
+        }
+
+        document.getElementById('bookSelect').addEventListener('change', function(e) {
+            const fileName = e.target.value;
+            if (fileName && allFilesData[fileName]) {
+                const fileData = allFilesData[fileName];
+                currentBuffer = fileData.buffer;
+                currentFileType = fileData.type;
+                if (fileData.type === 'pdf') {
+                    loadPDF(fileData.buffer);
+                } else if (fileData.type === 'word') {
+                    loadWord(fileData.buffer);
+                }
+            }
+        });
+
+        document.getElementById('viewMode').addEventListener('change', function() {
+            if (currentBuffer) {
+                if (currentFileType === 'pdf') {
+                    loadPDF(currentBuffer);
+                } else if (currentFileType === 'word') {
+                    loadWord(currentBuffer);
+                }
+            }
+        });
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const fileName = file.name;
+            const select = document.getElementById('bookSelect');
+
+            let optionExists = false;
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].value === fileName) {
+                    optionExists = true;
+                    break;
+                }
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const arrayBuffer = event.target.result;
+                currentBuffer = arrayBuffer;
+
+                if (file.type === "application/pdf" || fileName.toLowerCase().endsWith('.pdf')) {
+                    currentFileType = 'pdf';
+                    allFilesData[fileName] = { type: 'pdf', buffer: arrayBuffer };
+                    
+                    if (!optionExists) {
+                        const option = document.createElement('option');
+                        option.value = fileName;
+                        option.textContent = "📕 " + fileName;
+                        select.appendChild(option);
+                    }
+                    select.value = fileName;
+                    loadPDF(arrayBuffer);
+                } 
+                else if (fileName.toLowerCase().endsWith('.docx')) {
+                    currentFileType = 'word';
+                    allFilesData[fileName] = { type: 'word', buffer: arrayBuffer };
+                    
+                    if (!optionExists) {
+                        const option = document.createElement('option');
+                        option.value = fileName;
+                        option.textContent = "📄 " + fileName;
+                        select.appendChild(option);
+                    }
+                    select.value = fileName;
+                    loadWord(arrayBuffer);
+                } 
+                else {
+                    alert("សូមជ្រើសរើសឯកសារប្រភេទ PDF ឬ Word (.docx) តែប៉ុណ្ណោះ!");
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+            e.target.value = '';
+        });
+
+        function resetFlipbookContainer() {
+            stopAutoPlay();
+            if (pageFlip) {
+                try {
+                    pageFlip.destroy();
+                } catch (err) {
+                    console.log(err);
+                }
+                pageFlip = null;
+            }
+
+            const wrapper = document.getElementById('bookWrapper');
+            wrapper.innerHTML = '<div id="flipbook" class="flipbook-container"></div>';
+        }
+
+        async function loadPDF(data) {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+            resetFlipbookContainer();
+
+            const container = document.getElementById('flipbook');
+
+            try {
+                const loadingTask = pdfjsLib.getDocument({ data: data });
+                const pdf = await loadingTask.promise;
+                totalPages = pdf.numPages;
+
+                for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+                    const page = await pdf.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: 1.1 });
+
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'page';
+
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+
+                    pageDiv.appendChild(canvas);
+                    container.appendChild(pageDiv);
+                }
+
+                initFlipbook();
+            } catch (error) {
+                console.error(error);
+                loading.style.display = 'none';
+                alert("មានបញ្ហាក្នុងការអាន File PDF នេះ!");
+            }
+        }
+
+        async function loadWord(arrayBuffer) {
+            const loading = document.getElementById('loading');
+            loading.style.display = 'block';
+            resetFlipbookContainer();
+
+            const container = document.getElementById('flipbook');
+
+            try {
+                const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = result.value;
+                const paragraphs = Array.from(tempDiv.children);
+
+                let pagesHtml = [];
+                let currentPageContent = '';
+                let pCount = 0;
+
+                paragraphs.forEach(p => {
+                    currentPageContent += p.outerHTML;
+                    pCount++;
+                    if (pCount >= 6) {
+                        pagesHtml.push(currentPageContent);
+                        currentPageContent = '';
+                        pCount = 0;
+                    }
+                });
+                if (currentPageContent !== '') {
+                    pagesHtml.push(currentPageContent);
+                }
+
+                totalPages = pagesHtml.length;
+
+                pagesHtml.forEach((html) => {
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'page';
+                    
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'word-page-content';
+                    contentDiv.innerHTML = html;
+
+                    pageDiv.appendChild(contentDiv);
+                    container.appendChild(pageDiv);
+                });
+
+                initFlipbook();
+            } catch (error) {
+                console.error(error);
+                loading.style.display = 'none';
+                alert("មានបញ្ហាក្នុងការអាន File Word នេះ!");
+            }
+        }
+
+        function initFlipbook() {
+            const loading = document.getElementById('loading');
+            const container = document.getElementById('flipbook');
+
+            loading.style.display = 'none';
+
+            const mode = document.getElementById('viewMode').value;
+            const isTwoPages = (mode === "2");
+
+            pageFlip = new St.PageFlip(container, {
+                width: 380,  
+                height: 540, 
+                size: "fixed",
+                minWidth: 200,
+                maxWidth: 1000,
+                minHeight: 300,
+                maxHeight: 900,
+                drawShadow: true,
+                maxShadowOpacity: 0.8,
+                showCover: isTwoPages ? false : true,
+                mobileScrollSupport: false
+            });
+
+            pageFlip.loadFromHTML(container.querySelectorAll('.page'));
+
+            if (isTwoPages) {
+                container.style.width = "760px"; 
             } else {
-                alert("ឈ្មោះ ឬ Password មិនត្រឹមត្រូវទេ!");
+                container.style.width = "380px";
+            }
+
+            updatePageInfo();
+
+            // ភ្ជាប់សំឡេងស្វិចៗរលាត់ក្រដាសស្រទន់ស្របពេលប្តូរទំព័រ
+            pageFlip.on('flip', () => {
+                updatePageInfo();
+                playPageFlipSound();
+            });
+        }
+
+        function updatePageInfo() {
+            if (!pageFlip) return;
+            const current = pageFlip.getCurrentPageIndex() + 1;
+            document.getElementById('pageDisplay').textContent = `${current} / ${totalPages}`;
+        }
+
+        const btnAutoPlay = document.getElementById('btnAutoPlay');
+        btnAutoPlay.addEventListener('click', () => {
+            if (!pageFlip) {
+                alert("សូមជ្រើសរើសសៀវភៅ ឬឯកសារមុនសិន!");
+                return;
+            }
+            if (!isAutoPlaying) {
+                startAutoPlay();
+            } else {
+                stopAutoPlay();
+            }
+        });
+
+        function startAutoPlay() {
+            const seconds = parseInt(document.getElementById('intervalTime').value) || 5;
+            isAutoPlaying = true;
+            btnAutoPlay.textContent = "⏹ Stop";
+            btnAutoPlay.classList.add('active');
+
+            autoPlayInterval = setInterval(() => {
+                if (!pageFlip) return;
+                const currentPage = pageFlip.getCurrentPageIndex();
+                if (currentPage < totalPages - 1) {
+                    pageFlip.flipNext();
+                } else {
+                    pageFlip.flip(0); 
+                }
+            }, seconds * 1000);
+        }
+
+        function stopAutoPlay() {
+            isAutoPlaying = false;
+            btnAutoPlay.textContent = "▶ Start";
+            btnAutoPlay.classList.remove('active');
+            if (autoPlayInterval) {
+                clearInterval(autoPlayInterval);
+                autoPlayInterval = null;
+            }
+        }
+
+        document.getElementById('btnPrev').addEventListener('click', () => pageFlip && pageFlip.flipPrev());
+        document.getElementById('btnNext').addEventListener('click', () => pageFlip && pageFlip.flipNext());
+        document.getElementById('btnFirst').addEventListener('click', () => pageFlip && pageFlip.flip(0));
+        document.getElementById('btnLast').addEventListener('click', () => pageFlip && pageFlip.flip(totalPages - 1));
+
+        document.getElementById('btnZoomIn').addEventListener('click', () => {
+            if (currentZoom < 1.4) {
+                currentZoom += 0.1;
+                document.getElementById('bookWrapper').style.transform = `scale(${currentZoom})`;
+            }
+        });
+
+        document.getElementById('btnZoomOut').addEventListener('click', () => {
+            if (currentZoom > 0.7) {
+                currentZoom -= 0.1;
+                document.getElementById('bookWrapper').style.transform = `scale(${currentZoom})`;
+            }
+        });
+
+        document.getElementById('btnFullscreen').addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
             }
         });
     </script>
