@@ -294,6 +294,11 @@
 
         <div class="divider"></div>
 
+        <!-- 🖨️ ប៊ូតុងព្រីនទំព័រដែលកំពុងបើក -->
+        <button class="btn-tool" id="btnPrint" title="ព្រីនទំព័របច្ចុប្បន្ន">🖨️ ព្រីន</button>
+
+        <div class="divider"></div>
+
         <button class="btn-tool" id="btnZoomOut" title="បង្រួម">-</button>
         <button class="btn-tool" id="btnZoomIn" title="ពង្រីក">+</button>
 
@@ -315,12 +320,12 @@
         let currentBuffer = null;
         let currentFileType = '';
 
-        // សំឡេងក្រដាសស្វិចៗដូចវីដេអូ (Smooth Paper Swish & Sweep Sound)
+        // សំឡេងក្រដាសស្វិចៗដូចវីដេអូ (Smooth Paper Swish & Sweep Sound)[cite: 3]
         function playPageFlipSound() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 
-                const duration = 0.35; // រយៈពេលលឺស្រទន់ស្របពេលទំព័រលោត
+                const duration = 0.35; 
                 const bufferSize = audioCtx.sampleRate * duration;
                 const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
                 const data = buffer.getChannelData(0);
@@ -332,7 +337,6 @@
                 const noise = audioCtx.createBufferSource();
                 noise.buffer = buffer;
 
-                // ប្រើ Bandpass Filter រួមនឹង Frequency Sweep ដើម្បីឱ្យលឺសូរស្វិចៗរលាត់ក្រដាសស្រទន់ធម្មជាតិ
                 const filter = audioCtx.createBiquadFilter();
                 filter.type = 'bandpass';
                 filter.frequency.setValueAtTime(1000, audioCtx.currentTime);
@@ -463,7 +467,7 @@
 
                 for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
                     const page = await pdf.getPage(pageNum);
-                    const viewport = page.getViewport({ scale: 1.1 });
+                    const viewport = page.getViewport({ scale: 1.5 });
 
                     const pageDiv = document.createElement('div');
                     pageDiv.className = 'page';
@@ -575,7 +579,6 @@
 
             updatePageInfo();
 
-            // ភ្ជាប់សំឡេងស្វិចៗរលាត់ក្រដាសស្រទន់ស្របពេលប្តូរទំព័រ
             pageFlip.on('flip', () => {
                 updatePageInfo();
                 playPageFlipSound();
@@ -627,6 +630,70 @@
                 autoPlayInterval = null;
             }
         }
+
+        // 🖨️ មុខងារព្រីនឆ្លាតវៃ (បើក១ទំព័រព្រីន១ទំព័រ, បើក២ទំព័រព្រីន២ទំព័រដាច់ពីគ្នាទំហំពេញស្អាត)
+        document.getElementById('btnPrint').addEventListener('click', () => {
+            if (!pageFlip) {
+                alert("សូមបើកឯកសារសិន!");
+                return;
+            }
+
+            const mode = document.getElementById('viewMode').value;
+            const isTwoPages = (mode === "2");
+            const currentIndex = pageFlip.getCurrentPageIndex();
+            const pages = document.querySelectorAll('.page');
+            
+            let printContent = '';
+
+            function getPageHTML(pageElement) {
+                if (!pageElement) return '';
+                const canvas = pageElement.querySelector('canvas');
+                if (canvas) {
+                    const imgData = canvas.toDataURL('image/png');
+                    // ដាក់ page-break-after ដើម្បីឱ្យទំព័រនីមួយៗដាច់ពីគ្នាលើក្រដាសព្រីនដាច់ដោយឡែក
+                    return `<div style="page-break-after: always; break-after: page; height: 100vh; display: flex; justify-content: center; align-items: center;"><img src="${imgData}" style="max-width:100%; max-height:100vh; object-fit:contain;" /></div>`;
+                }
+                return `<div style="page-break-after: always; break-after: page; height: 100vh;">${pageElement.innerHTML}</div>`;
+            }
+
+            if (isTwoPages) {
+                // ប្រសិនបើបើក ២ ទំព័រ យកទាំងទំព័រឆ្វេង និងស្តាំ មកតម្រៀបព្រីនជា ២ សន្លឹកដាច់ពីគ្នា
+                const leftPage = pages[currentIndex];
+                const rightPage = pages[currentIndex + 1];
+                
+                printContent = `
+                    ${getPageHTML(leftPage)}
+                    ${rightPage ? getPageHTML(rightPage) : ''}
+                `;
+            } else {
+                // ប្រសិនបើបើក ១ ទំព័រ ព្រីនតែ ១ សន្លឹកគត់
+                const targetPage = pages[currentIndex];
+                printContent = getPageHTML(targetPage);
+            }
+
+            const printWindow = window.open('', '_blank', 'width=900,height=700');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>ព្រីនឯកសារ</title>
+                    <style>
+                        @page { size: auto; margin: 5mm; }
+                        body { font-family: sans-serif; margin: 0; padding: 0; background: white; }
+                    </style>
+                </head>
+                <body>
+                    ${printContent}
+                    <script>
+                        setTimeout(() => {
+                            window.print();
+                            window.close();
+                        }, 600);
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        });
 
         document.getElementById('btnPrev').addEventListener('click', () => pageFlip && pageFlip.flipPrev());
         document.getElementById('btnNext').addEventListener('click', () => pageFlip && pageFlip.flipNext());
